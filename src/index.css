@@ -4,10 +4,97 @@
   box-sizing: border-box;
 }
 
+/*
+ * CryptoPulse look — adapted from the Stageshow dark-hero gold example:
+ * depth from surface steps on black, one lit accent, status colors that
+ * mean status. Spacing and type follow φ ≈ 1.618 (8 / 13 / 21 / 34).
+ */
+:root {
+  /* Surfaces: canvas -> surface -> raised -> chrome, one step each. */
+  --cp-canvas: #06080c;
+  --cp-surface: #0d1117;
+  --cp-raised: #131926;
+  --cp-chrome: #1a2231;
+  --cp-well: #090d13;
+  /* Lines */
+  --cp-line: #232a3a;
+  --cp-line-faint: #1a2130;
+  /* Text */
+  --cp-text: #e8ecf3;
+  --cp-text-soft: #b9c1d1;
+  --cp-text-faint: #7d8698;
+  --cp-text-dim: #5b6373;
+  /* Accent — the one lit color */
+  --cp-accent: #38bdf8;
+  --cp-accent-soft: rgba(56, 189, 248, 0.12);
+  --cp-accent-strong: #0e2a3d;
+  /* Status */
+  --cp-up: #22c55e;
+  --cp-up-soft: rgba(34, 197, 94, 0.12);
+  --cp-down: #f87171;
+  --cp-down-soft: rgba(248, 113, 113, 0.12);
+  --cp-star: #facc15;
+  /* Shape — φ-derived radii */
+  --cp-radius-sm: 8px;
+  --cp-radius-md: 13px;
+  --cp-radius-lg: 21px;
+  --cp-radius-pill: 999px;
+  /* Type scale (φ): 13 / 21 / 34 */
+  --cp-font: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --cp-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 body {
   margin: 0;
-  background: #0b0e14;
-  color: #e6e9f0;
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--cp-canvas);
+  color: var(--cp-text);
+  font-family: var(--cp-font);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Live dot: a soft pulse, the only continuously moving element. */
+@keyframes cp-pulse-dot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+/* Skeleton shimmer at the content's own geometry. */
+@keyframes cp-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+/* Panels settle once on arrival; content never re-animates. */
+@keyframes cp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Refresh icon spins only while a fetch is in flight. */
+@keyframes cp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+::selection {
+  background: var(--cp-accent-soft);
 }
