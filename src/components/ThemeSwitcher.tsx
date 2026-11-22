@@ -44,6 +44,11 @@ const Trigger = styled.button`
       display: none;
     }
   }
+  /* 44px tap target on touch widths (app bar grows to fit it). */
+  @media (max-width: 640px) {
+    height: 44px;
+    padding: 0 12px;
+  }
 `;
 
 const Menu = styled.div`
@@ -52,6 +57,7 @@ const Menu = styled.div`
   top: calc(100% + 8px);
   z-index: 50;
   min-width: 220px;
+  max-width: calc(100vw - 32px);
   padding: 6px;
   border-radius: var(--cp-radius-md);
   border: 1px solid var(--cp-line);
@@ -74,6 +80,7 @@ const MenuItem = styled.button<{ $active: boolean }>`
   align-items: center;
   gap: 10px;
   width: 100%;
+  min-height: 44px;
   padding: 8px 10px;
   border: none;
   border-radius: var(--cp-radius-sm);

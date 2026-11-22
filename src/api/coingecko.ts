@@ -50,10 +50,24 @@ export async function fetchTopCoins(currency: Currency): Promise<Coin[]> {
     order: 'market_cap_desc',
     per_page: '100',
     page: '1',
-    sparkline: 'false',
+    sparkline: 'true',
     price_change_percentage: '24h',
   });
-  return fetchJson<Coin[]>(`${BASE_URL}/coins/markets?${params.toString()}`);
+  marketsRequests += 1;
+  try {
+    return await fetchJson<Coin[]>(`${BASE_URL}/coins/markets?${params.toString()}`);
+  } catch (error) {
+    marketsFailures += 1;
+    throw error;
+  }
+}
+
+/** Honest request accounting for the markets query, shown in the proof strip. */
+let marketsRequests = 0;
+let marketsFailures = 0;
+
+export function getMarketsRequestStats(): { requests: number; failures: number } {
+  return { requests: marketsRequests, failures: marketsFailures };
 }
 
 /** 7-day price history for one coin. Free endpoint, no API key required. */

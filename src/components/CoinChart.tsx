@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import styled from 'styled-components';
 import type { ChartPoint, Coin, Currency, MarketChart } from '../types';
-import { formatCurrency } from '../utils/format';
+import { formatCompact, formatCurrency } from '../utils/format';
 
 const ChartWrap = styled.div`
   width: 100%;
@@ -79,6 +79,23 @@ function cssVar(name: string, fallback: string): string {
   return value || fallback;
 }
 
+/** Narrow viewport (≤640px): the Y axis shrinks and ticks go compact
+    ("$90.12K") so the plot keeps most of the panel width. */
+function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 640px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const onChange = () => setNarrow(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return narrow;
+}
+
 function buildPoints(chart: MarketChart): ChartPoint[] {
   return chart.prices.map(([timestamp, price]) => {
     const date = new Date(timestamp);
@@ -125,6 +142,7 @@ export const CoinChart = memo(function CoinChart({
   );
   const up = coin.price_change_percentage_24h >= 0;
   const color = up ? colors.up : colors.down;
+  const narrow = useNarrow();
 
   if (isLoading) {
     return <ChartEmpty>Loading 7-day chart…</ChartEmpty>;
@@ -171,9 +189,11 @@ export const CoinChart = memo(function CoinChart({
             axisLine={false}
             domain={['auto', 'auto']}
             tickFormatter={(value: number) =>
-              formatCurrency(value, currency, { maximumFractionDigits: 2 })
+              narrow
+                ? formatCompact(value, currency)
+                : formatCurrency(value, currency, { maximumFractionDigits: 2 })
             }
-            width={90}
+            width={narrow ? 62 : 90}
           />
           <Tooltip
             cursor={{

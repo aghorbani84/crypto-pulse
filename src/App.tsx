@@ -10,7 +10,10 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import styled from 'styled-components';
+import { getMarketsRequestStats } from './api/coingecko';
 import { CoinChart } from './components/CoinChart';
+import { CoinIcon } from './components/CoinIcon';
+import { Sparkline } from './components/Sparkline';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { useCoinChart, useTopCoins } from './hooks/useCoins';
 import { useTheme } from './hooks/useTheme';
@@ -43,6 +46,9 @@ const Container = styled.main`
   max-width: 1120px;
   margin: 0 auto;
   padding: 21px 21px 64px;
+  @media (max-width: 640px) {
+    padding: 16px 16px 48px;
+  }
 `;
 
 /* Fixed 38px app bar, Stageshow chrome height. The wordmark is plain
@@ -60,6 +66,12 @@ const AppBar = styled.header`
   html[data-style='achaemenid'] & {
     border-bottom: 3px double var(--cp-accent);
   }
+  /* Mobile: the bar grows to fit 44px tap targets instead of clipping. */
+  @media (max-width: 640px) {
+    height: auto;
+    min-height: 38px;
+    gap: 8px;
+  }
 `;
 
 const AppBarRight = styled.div`
@@ -67,6 +79,9 @@ const AppBarRight = styled.div`
   align-items: center;
   gap: 8px;
   flex: none;
+  @media (max-width: 640px) {
+    gap: 6px;
+  }
 `;
 
 /* Lotus-petal divider — Achaemenid only, inline SVG, low contrast. */
@@ -153,6 +168,97 @@ const Subtitle = styled.p`
   max-width: 62ch;
 `;
 
+/* Datasheet title (rank-1 lesson §A.6): name + version + the live
+   numbers that prove it. Also mirrored to document.title. */
+const DatasheetTitle = styled.h1`
+  font-family: var(--cp-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  color: var(--cp-text);
+  font-variant-numeric: tabular-nums;
+  html[data-style='achaemenid'] & {
+    letter-spacing: 0.04em;
+  }
+  @media (max-width: 640px) {
+    font-size: 1.15rem;
+    overflow-wrap: anywhere;
+  }
+`;
+
+/* Proof strip (rank-1 lesson §A.2): counts rendered IN the UI from the
+   TanStack Query meta — never claimed in prose. */
+const ProofStrip = styled.div<{ $stale?: boolean }>`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 13px;
+  margin-bottom: 13px;
+  padding: 8px 13px;
+  border-radius: var(--cp-radius-md);
+  border: 1px solid var(--cp-line);
+  background: ${(props) =>
+    props.$stale ? 'var(--cp-down-soft)' : 'var(--cp-surface)'};
+  color: ${(props) => (props.$stale ? 'var(--cp-down)' : 'var(--cp-text-faint)')};
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  strong {
+    color: var(--cp-text);
+    font-weight: 700;
+  }
+  span + span::before {
+    content: '·';
+    margin-right: 13px;
+    color: var(--cp-text-dim);
+  }
+`;
+
+/* Market stats strip (rank-1 lesson §A.1): totals computed from the
+   fetched coin list itself — no invented numbers, no extra request. */
+const StatsStrip = styled.section`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 13px;
+  margin-bottom: 21px;
+  @media (max-width: 820px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 420px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const StatCard = styled.div`
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-line);
+  border-radius: var(--cp-radius-md);
+  padding: 13px 16px;
+`;
+
+const StatLabel = styled.div`
+  color: var(--cp-text-faint);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+`;
+
+const StatValue = styled.div`
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+`;
+
+const StatSub = styled.div`
+  color: var(--cp-text-dim);
+  font-size: 0.82rem;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+`;
+
 /* ------------------------------------------------------------------ */
 /* Controls                                                            */
 /* ------------------------------------------------------------------ */
@@ -201,6 +307,9 @@ const SearchInput = styled.input`
     border-color: var(--cp-accent);
     box-shadow: 0 0 0 3px var(--cp-accent-soft);
   }
+  @media (max-width: 640px) {
+    height: 44px;
+  }
 `;
 
 /* Segmented currency control — the same setCurrency, as two buttons
@@ -212,6 +321,9 @@ const Segmented = styled.div`
   border-radius: var(--cp-radius-md);
   border: 1px solid var(--cp-line);
   background: var(--cp-surface);
+  @media (max-width: 640px) {
+    height: 44px;
+  }
 `;
 
 const Segment = styled.button<{ $active: boolean }>`
@@ -256,6 +368,9 @@ const Button = styled.button<{ $active?: boolean }>`
   &:disabled {
     opacity: 0.6;
     cursor: default;
+  }
+  @media (max-width: 640px) {
+    height: 44px;
   }
   svg {
     color: ${(props) => (props.$active ? 'var(--cp-accent-text)' : 'var(--cp-text-faint)')};
@@ -306,14 +421,6 @@ const ChartIdentity = styled.div`
   display: flex;
   align-items: center;
   gap: 13px;
-`;
-
-const ChartIcon = styled.img`
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid var(--cp-line);
-  flex: none;
 `;
 
 const ChartTitle = styled.h2`
@@ -474,6 +581,9 @@ const Th = styled.th<{ $sortable?: boolean; $right?: boolean }>`
   &:hover {
     color: ${(props) => (props.$sortable ? 'var(--cp-text)' : 'var(--cp-text-faint)')};
   }
+  @media (max-width: 640px) {
+    padding: 10px 12px;
+  }
 `;
 
 const Td = styled.td<{ $right?: boolean; $num?: boolean }>`
@@ -483,6 +593,9 @@ const Td = styled.td<{ $right?: boolean; $num?: boolean }>`
   text-align: ${(props) => (props.$right ? 'right' : 'left')};
   font-variant-numeric: ${(props) => (props.$num ? 'tabular-nums' : 'normal')};
   color: ${(props) => (props.$num ? 'var(--cp-text-soft)' : 'inherit')};
+  @media (max-width: 640px) {
+    padding: 10px 12px;
+  }
 `;
 
 const Rank = styled.span`
@@ -510,14 +623,6 @@ const CoinCell = styled.div`
   align-items: center;
   gap: 10px;
   font-weight: 600;
-`;
-
-const CoinIcon = styled.img`
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid var(--cp-line);
-  flex: none;
 `;
 
 const CoinName = styled.span`
@@ -564,6 +669,11 @@ const StarButton = styled.button<{ $watched?: boolean }>`
     color: ${(props) =>
       props.$watched ? 'var(--cp-star)' : 'var(--cp-text-dim)'};
   }
+  /* 44px tap target on touch widths; rows are tall enough to hold it. */
+  @media (max-width: 640px) {
+    width: 44px;
+    height: 44px;
+  }
 `;
 
 /* ------------------------------------------------------------------ */
@@ -572,6 +682,7 @@ const StarButton = styled.button<{ $watched?: boolean }>`
 
 const SkeletonWrap = styled.div`
   padding: 8px 0;
+  overflow: hidden;
 `;
 
 const SkeletonRow = styled.div`
@@ -706,14 +817,56 @@ export default function App() {
   const gainers = useMemo(() => {
     return [...coins]
       .sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h)
-      .slice(0, 3);
+      .slice(0, 5);
   }, [coins]);
 
   const losers = useMemo(() => {
     return [...coins]
       .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
-      .slice(0, 3);
+      .slice(0, 5);
   }, [coins]);
+
+  /* Market totals computed from the fetched list — no extra request. */
+  const marketStats = useMemo(() => {
+    if (coins.length === 0) return null;
+    const totalMcap = coins.reduce((sum, c) => sum + c.market_cap, 0);
+    const totalVolume = coins.reduce((sum, c) => sum + c.total_volume, 0);
+    const btc = coins.find((c) => c.id === 'bitcoin');
+    return {
+      totalMcap,
+      totalVolume,
+      btcPrice: btc?.current_price ?? null,
+      btcChange: btc?.price_change_percentage_24h ?? null,
+      btcDominance:
+        btc && totalMcap > 0 ? (btc.market_cap / totalMcap) * 100 : null,
+    };
+  }, [coins]);
+
+  /* Datasheet title — live numbers when data exists, honest state when not. */
+  const datasheetTitle =
+    marketStats && marketStats.btcPrice !== null
+      ? `CryptoPulse v2 — BTC ${formatCurrency(marketStats.btcPrice, currency)} · ${coins.length} coins · 24h vol ${formatCompact(marketStats.totalVolume, currency)}`
+      : coinsQuery.isError
+        ? 'CryptoPulse v2 — CoinGecko unreachable'
+        : 'CryptoPulse v2 — loading live market data…';
+
+  useEffect(() => {
+    document.title = datasheetTitle;
+  }, [datasheetTitle]);
+
+  /* Proof strip, from TanStack Query meta. Re-renders every second via the
+     countdown tick, so "updated Xs ago" stays live. */
+  /* dataUpdatedAt is 0 until a fetch first succeeds — without this guard
+     the strip would render a nonsense "updated 1795325595s ago". */
+  const hasSuccessfulFetch = coinsQuery.dataUpdatedAt > 0;
+  const secondsAgo = hasSuccessfulFetch
+    ? Math.max(
+        0,
+        Math.floor((Date.now() - coinsQuery.dataUpdatedAt) / 1000),
+      )
+    : null;
+  const requestStats = getMarketsRequestStats();
+  const stale = coinsQuery.isError && coins.length > 0;
 
   const visibleCoins = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -783,14 +936,60 @@ export default function App() {
               ) : (
                 <LiveDot />
               )}
-              {coinsQuery.isFetching
-                ? 'Updating…'
-                : `Live · refresh in ${countdown}s`}
+              {coinsQuery.isFetching ? (
+                'Updating…'
+              ) : (
+                <>
+                  {/* Narrow screens show just "Live" — the countdown
+                      text would push the app bar past 360px. */}
+                  <span className="live-long">
+                    Live · refresh in {countdown}s
+                  </span>
+                  <span className="live-short">Live</span>
+                </>
+              )}
             </LivePill>
           </AppBarRight>
         </AppBar>
 
         <LotusStrip aria-hidden="true" />
+
+        <DatasheetTitle>{datasheetTitle}</DatasheetTitle>
+
+        <ProofStrip $stale={stale} aria-live="polite">
+          {coinsQuery.isPending && coins.length === 0 ? (
+            <span>Fetching live prices from CoinGecko…</span>
+          ) : stale ? (
+            <>
+              <span>
+                <strong>CoinGecko unreachable</strong> —{' '}
+                {hasSuccessfulFetch
+                  ? `showing last data from ${secondsAgo}s ago`
+                  : 'no data yet'}
+              </span>
+              <span>
+                {requestStats.failures} failed · {requestStats.requests} API
+                requests
+              </span>
+            </>
+          ) : (
+            <>
+              <span>
+                <strong>{coins.length} coins</strong>
+              </span>
+              <span>
+                {requestStats.requests} API request
+                {requestStats.requests === 1 ? '' : 's'}
+              </span>
+              {hasSuccessfulFetch ? (
+                <span>updated {secondsAgo}s ago</span>
+              ) : (
+                <span>no data yet</span>
+              )}
+              <span>{requestStats.failures} failed</span>
+            </>
+          )}
+        </ProofStrip>
 
         <Subtitle>
           Live top-100 cryptocurrencies by market cap, powered by the CoinGecko
@@ -845,6 +1044,47 @@ export default function App() {
           </Button>
         </Controls>
 
+        {marketStats && (
+          <StatsStrip aria-label="Market totals from the fetched coin list">
+            <StatCard>
+              <StatLabel>Total market cap</StatLabel>
+              <StatValue>
+                {formatCompact(marketStats.totalMcap, currency)}
+              </StatValue>
+              <StatSub>top {coins.length} coins</StatSub>
+            </StatCard>
+            <StatCard>
+              <StatLabel>BTC dominance</StatLabel>
+              <StatValue>
+                {marketStats.btcDominance !== null
+                  ? `${marketStats.btcDominance.toFixed(1)}%`
+                  : '—'}
+              </StatValue>
+              <StatSub>of total market cap</StatSub>
+            </StatCard>
+            <StatCard>
+              <StatLabel>Total 24h volume</StatLabel>
+              <StatValue>
+                {formatCompact(marketStats.totalVolume, currency)}
+              </StatValue>
+              <StatSub>top {coins.length} coins</StatSub>
+            </StatCard>
+            <StatCard>
+              <StatLabel>BTC price</StatLabel>
+              <StatValue>
+                {marketStats.btcPrice !== null
+                  ? formatCurrency(marketStats.btcPrice, currency)
+                  : '—'}
+              </StatValue>
+              <StatSub>
+                {marketStats.btcChange !== null
+                  ? `${formatPercent(marketStats.btcChange)} · 24h`
+                  : 'rank #1 by market cap'}
+              </StatSub>
+            </StatCard>
+          </StatsStrip>
+        )}
+
         {coinsQuery.isPending && (
           <TableWrap aria-busy="true" aria-label="Loading live prices">
             <SkeletonWrap>
@@ -863,7 +1103,7 @@ export default function App() {
           </TableWrap>
         )}
 
-        {coinsQuery.isError && (
+        {coinsQuery.isError && coins.length === 0 && (
           <ErrorBox>
             <AlertTriangle size={28} />
             <strong>Couldn&apos;t load prices.</strong>
@@ -878,13 +1118,17 @@ export default function App() {
           </ErrorBox>
         )}
 
-        {coinsQuery.isSuccess && coins.length > 0 && (
+        {coins.length > 0 && (
           <>
             {selectedCoin && (
               <ChartPanel>
                 <ChartHeader>
                   <ChartIdentity>
-                    <ChartIcon src={selectedCoin.image} alt="" />
+                    <CoinIcon
+                      src={selectedCoin.image}
+                      name={selectedCoin.name}
+                      size={34}
+                    />
                     <div>
                       <ChartTitle>
                         {selectedCoin.name}{' '}
@@ -1006,9 +1250,17 @@ export default function App() {
                         {SORT_LABELS.price_change_percentage_24h}
                         {sortIndicator('price_change_percentage_24h')}
                       </Th>
-                      <Th $sortable $right onClick={() => handleSort('market_cap')}>
+                      <Th
+                        $sortable
+                        $right
+                        className="col-mcap"
+                        onClick={() => handleSort('market_cap')}
+                      >
                         {SORT_LABELS.market_cap}
                         {sortIndicator('market_cap')}
+                      </Th>
+                      <Th $right className="col-spark">
+                        7d
                       </Th>
                       <Th $right>Watch</Th>
                     </tr>
@@ -1027,8 +1279,8 @@ export default function App() {
                           <CoinCell>
                             <CoinIcon
                               src={coin.image}
-                              alt=""
-                              loading="lazy"
+                              name={coin.name}
+                              size={28}
                             />
                             <CoinName>
                               {coin.name} <Symbol>{coin.symbol}</Symbol>
@@ -1047,8 +1299,20 @@ export default function App() {
                             {formatPercent(coin.price_change_percentage_24h)}
                           </ChangePill>
                         </Td>
-                        <Td $right $num>
+                        <Td $right $num className="col-mcap">
                           {formatCompact(coin.market_cap, currency)}
+                        </Td>
+                        <Td $right className="col-spark">
+                          <Sparkline
+                            prices={coin.sparkline_in_7d?.price}
+                            up={
+                              (coin.sparkline_in_7d?.price?.length ?? 0) > 1
+                                ? coin.sparkline_in_7d.price[
+                                    coin.sparkline_in_7d.price.length - 1
+                                  ]! >= coin.sparkline_in_7d.price[0]!
+                                : coin.price_change_percentage_24h >= 0
+                            }
+                          />
                         </Td>
                         <Td $right>
                           <StarButton
