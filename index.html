@@ -4,6 +4,34 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // Apply the saved theme before first paint (no white flash).
+      try {
+        var s = localStorage.getItem('showcase-style') || 'modern';
+        var m =
+          localStorage.getItem('showcase-mode') ||
+          (window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light');
+        document.documentElement.setAttribute(
+          'data-style',
+          s === 'achaemenid' ? 'achaemenid' : 'modern',
+        );
+        document.documentElement.setAttribute(
+          'data-mode',
+          m === 'dark' ? 'dark' : 'light',
+        );
+      } catch (e) {
+        document.documentElement.setAttribute('data-style', 'modern');
+        document.documentElement.setAttribute('data-mode', 'light');
+      }
+    </script>
     <title>CryptoPulse — Live Cryptocurrency Price Tracker</title>
   </head>
   <body>

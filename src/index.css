@@ -5,42 +5,174 @@
 }
 
 /*
- * CryptoPulse look — adapted from the Stageshow dark-hero gold example:
- * depth from surface steps on black, one lit accent, status colors that
- * mean status. Spacing and type follow φ ≈ 1.618 (8 / 13 / 21 / 34).
+ * CryptoPulse — 4-way theme system (shared showcase spec):
+ * <html data-style="achaemenid|modern" data-mode="light|dark">.
+ * Semantic tokens (--bg, --surface, ...) swap per combo; the legacy
+ * --cp-* names below are aliases so existing components keep working.
+ * Palettes: gold #B08D2E / lapis #1D4E9E / accent #4F46E5 (tailwindshades).
+ * Modern light accent highlight: Foundry coral #e26d5a (--highlight).
  */
+:root,
+:root[data-style='modern'][data-mode='light'] {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-raised: #f1f5f9;
+  --surface-chrome: #e2e8f0;
+  --well: #f1f5f9;
+  --text: #0f172a;
+  --text-soft: #334155;
+  --text-faint: #475569;
+  --text-dim: #64748b;
+  --line: #e2e8f0;
+  --line-faint: #eef2f7;
+  --accent: #4f46e5;
+  --accent-text: #4f46e5;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(79, 70, 229, 0.1);
+  --accent-strong: #e0e7ff;
+  --accent-glow: rgba(79, 70, 229, 0.08);
+  --secondary: #4f46e5;
+  --highlight: #e26d5a; /* Foundry coral — Modern light highlight */
+  --row-accent: #e26d5a;
+  --up: #16a34a;
+  --up-soft: rgba(22, 163, 74, 0.12);
+  --down: #dc2626;
+  --down-soft: rgba(220, 38, 38, 0.1);
+  --star: #ca8a04;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 12px;
+  --display-font: 'Inter', system-ui, sans-serif;
+  --shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+:root[data-style='modern'][data-mode='dark'] {
+  --bg: #0b1220;
+  --surface: #111c2e;
+  --surface-raised: #1a2942;
+  --surface-chrome: #22314e;
+  --well: #0d1626;
+  --text: #e2e8f0;
+  --text-soft: #cbd5e1;
+  --text-faint: #94a3b8;
+  --text-dim: #64748b;
+  --line: #1e293b;
+  --line-faint: #16213a;
+  --accent: #818cf8; /* accent-400 */
+  --accent-text: #a5b4fc;
+  --accent-ink: #1e1b4b; /* accent-950 */
+  --accent-soft: rgba(129, 140, 248, 0.14);
+  --accent-strong: #1e1b4b;
+  --accent-glow: rgba(129, 140, 248, 0.1);
+  --secondary: #818cf8;
+  --highlight: #818cf8;
+  --row-accent: #818cf8;
+  --up: #22c55e;
+  --up-soft: rgba(34, 197, 94, 0.12);
+  --down: #f87171;
+  --down-soft: rgba(248, 113, 113, 0.12);
+  --star: #facc15;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 12px;
+  --display-font: 'Inter', system-ui, sans-serif;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-style='achaemenid'][data-mode='light'] {
+  --bg: #f5efe3;
+  --surface: #fffdf6;
+  --surface-raised: #fbf6ea;
+  --surface-chrome: #efe6cf;
+  --well: #efe8d3;
+  --text: #2b2118;
+  --text-soft: #4a3d2c;
+  --text-faint: #7a6a55;
+  --text-dim: #9a8a70;
+  --line: #d9c9a8;
+  --line-faint: #e9dfc6;
+  --accent: #b08d2e; /* gold-600 */
+  --accent-text: #7c6218; /* gold-700, AA text on sandstone */
+  --accent-ink: #3a2f0d; /* gold-950 */
+  --accent-soft: rgba(176, 141, 46, 0.14);
+  --accent-strong: #f3e5b8;
+  --accent-glow: rgba(176, 141, 46, 0.1);
+  --secondary: #2b5cb8; /* lapis-700 */
+  --highlight: #b08d2e;
+  --row-accent: #b08d2e;
+  --up: #15803d;
+  --up-soft: rgba(21, 128, 61, 0.12);
+  --down: #b91c1c;
+  --down-soft: rgba(185, 28, 28, 0.1);
+  --star: #b08d2e;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --display-font: 'Cinzel', Georgia, 'Times New Roman', serif;
+  --shadow: 0 8px 24px rgba(43, 33, 24, 0.14);
+}
+
+:root[data-style='achaemenid'][data-mode='dark'] {
+  --bg: #171310;
+  --surface: #221b15;
+  --surface-raised: #2c241b;
+  --surface-chrome: #3a2f22;
+  --well: #1b1510;
+  --text: #ece0c8;
+  --text-soft: #d8c9a8;
+  --text-faint: #a89880;
+  --text-dim: #7d6f5c;
+  --line: #3d3226;
+  --line-faint: #2c241b;
+  --accent: #d9b45c; /* gold-400 */
+  --accent-text: #d9b45c;
+  --accent-ink: #3a2f0d; /* gold-950 */
+  --accent-soft: rgba(217, 180, 92, 0.14);
+  --accent-strong: #3a2f0d;
+  --accent-glow: rgba(217, 180, 92, 0.08);
+  --secondary: #7aa5e8; /* lapis-400 */
+  --highlight: #d9b45c;
+  --row-accent: #d9b45c;
+  --up: #4ade80;
+  --up-soft: rgba(74, 222, 128, 0.12);
+  --down: #f87171;
+  --down-soft: rgba(248, 113, 113, 0.12);
+  --star: #facc15;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --display-font: 'Cinzel', Georgia, 'Times New Roman', serif;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Legacy --cp-* aliases — components read these, tokens above drive them. */
 :root {
-  /* Surfaces: canvas -> surface -> raised -> chrome, one step each. */
-  --cp-canvas: #06080c;
-  --cp-surface: #0d1117;
-  --cp-raised: #131926;
-  --cp-chrome: #1a2231;
-  --cp-well: #090d13;
-  /* Lines */
-  --cp-line: #232a3a;
-  --cp-line-faint: #1a2130;
-  /* Text */
-  --cp-text: #e8ecf3;
-  --cp-text-soft: #b9c1d1;
-  --cp-text-faint: #7d8698;
-  --cp-text-dim: #5b6373;
-  /* Accent — the one lit color */
-  --cp-accent: #38bdf8;
-  --cp-accent-soft: rgba(56, 189, 248, 0.12);
-  --cp-accent-strong: #0e2a3d;
-  /* Status */
-  --cp-up: #22c55e;
-  --cp-up-soft: rgba(34, 197, 94, 0.12);
-  --cp-down: #f87171;
-  --cp-down-soft: rgba(248, 113, 113, 0.12);
-  --cp-star: #facc15;
-  /* Shape — φ-derived radii */
-  --cp-radius-sm: 8px;
-  --cp-radius-md: 13px;
-  --cp-radius-lg: 21px;
+  --cp-canvas: var(--bg);
+  --cp-surface: var(--surface);
+  --cp-raised: var(--surface-raised);
+  --cp-chrome: var(--surface-chrome);
+  --cp-well: var(--well);
+  --cp-line: var(--line);
+  --cp-line-faint: var(--line-faint);
+  --cp-text: var(--text);
+  --cp-text-soft: var(--text-soft);
+  --cp-text-faint: var(--text-faint);
+  --cp-text-dim: var(--text-dim);
+  --cp-accent: var(--accent);
+  --cp-accent-text: var(--accent-text);
+  --cp-accent-soft: var(--accent-soft);
+  --cp-accent-strong: var(--accent-strong);
+  --cp-up: var(--up);
+  --cp-up-soft: var(--up-soft);
+  --cp-down: var(--down);
+  --cp-down-soft: var(--down-soft);
+  --cp-star: var(--star);
+  --cp-radius-sm: var(--radius-sm);
+  --cp-radius-md: var(--radius-md);
+  --cp-radius-lg: var(--radius-lg);
   --cp-radius-pill: 999px;
-  /* Type scale (φ): 13 / 21 / 34 */
   --cp-font: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --cp-display: var(--display-font);
   --cp-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -51,6 +183,11 @@ body {
   font-family: var(--cp-font);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: 2px solid var(--cp-accent);
+  outline-offset: 2px;
 }
 
 /* Live dot: a soft pulse, the only continuously moving element. */
@@ -97,4 +234,14 @@ body {
 
 ::selection {
   background: var(--cp-accent-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

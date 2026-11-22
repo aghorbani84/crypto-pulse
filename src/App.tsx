@@ -11,7 +11,9 @@ import {
 } from 'lucide-react';
 import styled from 'styled-components';
 import { CoinChart } from './components/CoinChart';
+import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { useCoinChart, useTopCoins } from './hooks/useCoins';
+import { useTheme } from './hooks/useTheme';
 import { useWatchlist } from './hooks/useWatchlist';
 import type {
   ChartPoint,
@@ -31,7 +33,7 @@ const REFRESH_SECONDS = 60;
 const Page = styled.div`
   min-height: 100vh;
   background:
-    radial-gradient(720px 320px at 50% -80px, rgba(56, 189, 248, 0.07), transparent 70%),
+    radial-gradient(720px 320px at 50% -80px, var(--accent-glow), transparent 70%),
     var(--cp-canvas);
   color: var(--cp-text);
   font-family: var(--cp-font);
@@ -54,17 +56,50 @@ const AppBar = styled.header`
   margin-bottom: 21px;
   border-bottom: 1px solid var(--cp-line-faint);
   padding-bottom: 13px;
+  /* Achaemenid: thin double gold rule under the header (spec §3). */
+  html[data-style='achaemenid'] & {
+    border-bottom: 3px double var(--cp-accent);
+  }
+`;
+
+const AppBarRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+`;
+
+/* Lotus-petal divider — Achaemenid only, inline SVG, low contrast. */
+const LotusStrip = styled.div`
+  display: none;
+  height: 12px;
+  margin: -13px 0 21px;
+  background-repeat: repeat-x;
+  background-position: center;
+  html[data-style='achaemenid'][data-mode='light'] & {
+    display: block;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='12' viewBox='0 0 48 12'%3E%3Cpath d='M4 12 Q12 1 20 12 M28 12 Q36 1 44 12' fill='none' stroke='%23b08d2e' stroke-opacity='0.45' stroke-width='1'/%3E%3C/svg%3E");
+  }
+  html[data-style='achaemenid'][data-mode='dark'] & {
+    display: block;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='12' viewBox='0 0 48 12'%3E%3Cpath d='M4 12 Q12 1 20 12 M28 12 Q36 1 44 12' fill='none' stroke='%23d9b45c' stroke-opacity='0.45' stroke-width='1'/%3E%3C/svg%3E");
+  }
 `;
 
 const Wordmark = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+  font-family: var(--cp-display);
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--cp-text);
   white-space: nowrap;
+
+  html[data-style='achaemenid'] & {
+    letter-spacing: 0.06em;
+  }
 
   svg {
     color: var(--cp-accent);
@@ -88,7 +123,7 @@ const LivePill = styled.div<{ $busy: boolean }>`
   background: var(--cp-surface);
   font-size: 0.82rem;
   font-weight: 600;
-  color: ${(props) => (props.$busy ? 'var(--cp-accent)' : 'var(--cp-up)')};
+  color: ${(props) => (props.$busy ? 'var(--cp-accent-text)' : 'var(--cp-up)')};
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 `;
@@ -185,7 +220,7 @@ const Segment = styled.button<{ $active: boolean }>`
   border: none;
   border-radius: 10px;
   background: ${(props) => (props.$active ? 'var(--cp-raised)' : 'transparent')};
-  color: ${(props) => (props.$active ? 'var(--cp-accent)' : 'var(--cp-text-faint)')};
+  color: ${(props) => (props.$active ? 'var(--cp-accent-text)' : 'var(--cp-text-faint)')};
   font-size: 0.9rem;
   font-weight: ${(props) => (props.$active ? 700 : 500)};
   font-family: inherit;
@@ -194,7 +229,7 @@ const Segment = styled.button<{ $active: boolean }>`
     background 0.15s ease,
     color 0.15s ease;
   &:hover {
-    color: ${(props) => (props.$active ? 'var(--cp-accent)' : 'var(--cp-text)')};
+    color: ${(props) => (props.$active ? 'var(--cp-accent-text)' : 'var(--cp-text)')};
   }
 `;
 
@@ -207,7 +242,7 @@ const Button = styled.button<{ $active?: boolean }>`
   border-radius: var(--cp-radius-md);
   border: 1px solid ${(props) => (props.$active ? 'var(--cp-accent)' : 'var(--cp-line)')};
   background: ${(props) => (props.$active ? 'var(--cp-accent-strong)' : 'var(--cp-surface)')};
-  color: ${(props) => (props.$active ? 'var(--cp-accent)' : 'var(--cp-text)')};
+  color: ${(props) => (props.$active ? 'var(--cp-accent-text)' : 'var(--cp-text)')};
   font-size: 0.92rem;
   font-weight: 600;
   font-family: inherit;
@@ -223,7 +258,7 @@ const Button = styled.button<{ $active?: boolean }>`
     cursor: default;
   }
   svg {
-    color: ${(props) => (props.$active ? 'var(--cp-accent)' : 'var(--cp-text-faint)')};
+    color: ${(props) => (props.$active ? 'var(--cp-accent-text)' : 'var(--cp-text-faint)')};
   }
 `;
 
@@ -236,7 +271,7 @@ const CountBadge = styled.span`
   padding: 0 6px;
   border-radius: var(--cp-radius-pill);
   background: var(--cp-accent-soft);
-  color: var(--cp-accent);
+  color: var(--cp-accent-text);
   font-size: 0.78rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -282,6 +317,7 @@ const ChartIcon = styled.img`
 `;
 
 const ChartTitle = styled.h2`
+  font-family: var(--cp-display);
   font-size: 1.05rem;
   font-weight: 600;
   margin: 0;
@@ -369,6 +405,7 @@ const MoverTitle = styled.h2`
   display: flex;
   align-items: center;
   gap: 8px;
+  font-family: var(--cp-display);
   font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -458,7 +495,7 @@ const Row = styled.tr<{ $selected: boolean }>`
   cursor: pointer;
   background: ${(props) => (props.$selected ? 'var(--cp-raised)' : 'transparent')};
   box-shadow: ${(props) =>
-    props.$selected ? 'inset 2px 0 0 var(--cp-accent)' : 'none'};
+    props.$selected ? 'inset 2px 0 0 var(--row-accent)' : 'none'};
   transition: background 0.12s ease;
   &:hover {
     background: var(--cp-raised);
@@ -590,8 +627,9 @@ const StateBox = styled.div`
 `;
 
 const ErrorBox = styled(StateBox)`
-  color: #fca5a5;
-  border-color: #7f1d1d;
+  color: var(--cp-down);
+  border-color: var(--cp-down);
+  background: var(--cp-down-soft);
   svg {
     color: var(--cp-down);
   }
@@ -609,6 +647,18 @@ const Footer = styled.footer`
   font-size: 0.85rem;
   text-align: center;
   line-height: 1.6;
+`;
+
+/* ONE tasteful Faravahar accent (spec §3): small gold inline-SVG
+   silhouette in the footer, shown in the Achaemenid style only. */
+const Faravahar = styled.span`
+  display: none;
+  justify-content: center;
+  margin-bottom: 8px;
+  color: var(--cp-accent);
+  html[data-style='achaemenid'] & {
+    display: flex;
+  }
 `;
 
 const SORT_LABELS: Record<SortKey, string> = {
@@ -639,6 +689,7 @@ export default function App() {
   const [hoverPoint, setHoverPoint] = useState<ChartPoint | null>(null);
 
   const { ids: watchlistIds, toggle: toggleWatch, isWatched } = useWatchlist();
+  const { style, mode, setStyle, setMode, themeKey } = useTheme();
   const coinsQuery = useTopCoins(currency);
   const chartQuery = useCoinChart(selectedId, currency);
 
@@ -717,19 +768,29 @@ export default function App() {
             <Activity size={18} strokeWidth={2.5} />
             Crypto<Accent>Pulse</Accent>
           </Wordmark>
-          <LivePill $busy={coinsQuery.isFetching}>
-            {coinsQuery.isFetching ? (
-              <SpinIcon $spin>
-                <RefreshCw size={13} strokeWidth={2.5} />
-              </SpinIcon>
-            ) : (
-              <LiveDot />
-            )}
-            {coinsQuery.isFetching
-              ? 'Updating…'
-              : `Live · refresh in ${countdown}s`}
-          </LivePill>
+          <AppBarRight>
+            <ThemeSwitcher
+              style={style}
+              mode={mode}
+              onStyle={setStyle}
+              onMode={setMode}
+            />
+            <LivePill $busy={coinsQuery.isFetching}>
+              {coinsQuery.isFetching ? (
+                <SpinIcon $spin>
+                  <RefreshCw size={13} strokeWidth={2.5} />
+                </SpinIcon>
+              ) : (
+                <LiveDot />
+              )}
+              {coinsQuery.isFetching
+                ? 'Updating…'
+                : `Live · refresh in ${countdown}s`}
+            </LivePill>
+          </AppBarRight>
         </AppBar>
+
+        <LotusStrip aria-hidden="true" />
 
         <Subtitle>
           Live top-100 cryptocurrencies by market cap, powered by the CoinGecko
@@ -870,6 +931,7 @@ export default function App() {
                   chart={chartQuery.data}
                   currency={currency}
                   isLoading={chartQuery.isPending}
+                  themeKey={themeKey}
                   onHoverPoint={setHoverPoint}
                 />
               </ChartPanel>
@@ -1019,6 +1081,27 @@ export default function App() {
         )}
 
         <Footer>
+          <Faravahar aria-hidden="true">
+            <svg width="56" height="28" viewBox="0 0 56 28" fill="none">
+              <circle cx="28" cy="11" r="4" fill="currentColor" />
+              <path
+                d="M24 11 C16 4 8 3 2 7 C8 8 14 10 24 13 Z"
+                fill="currentColor"
+                opacity="0.85"
+              />
+              <path
+                d="M32 11 C40 4 48 3 54 7 C48 8 42 10 32 13 Z"
+                fill="currentColor"
+                opacity="0.85"
+              />
+              <path
+                d="M26 16 L24 26 M28 16 L28 27 M30 16 L32 26"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </Faravahar>
           Data: CoinGecko public API (free tier, no API key). Prices refresh
           every 60 seconds to respect rate limits.
         </Footer>

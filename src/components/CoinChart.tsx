@@ -45,7 +45,7 @@ const TooltipBox = styled.div`
   padding: 8px 12px;
   font-size: 0.85rem;
   color: var(--cp-text);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow, 0 8px 24px rgba(0, 0, 0, 0.45));
 `;
 
 const TooltipDate = styled.div`
@@ -64,8 +64,19 @@ interface CoinChartProps {
   chart: MarketChart | undefined;
   currency: Currency;
   isLoading: boolean;
+  /** `${style}-${mode}` — changing it re-reads chart colors from CSS vars. */
+  themeKey: string;
   /** Chart-scrub readout: the point under the pointer, null when it leaves. */
   onHoverPoint: (point: ChartPoint | null) => void;
+}
+
+/** Read a theme token from the live CSS variables (spec §6). */
+function cssVar(name: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return value || fallback;
 }
 
 function buildPoints(chart: MarketChart): ChartPoint[] {
@@ -94,11 +105,26 @@ export const CoinChart = memo(function CoinChart({
   chart,
   currency,
   isLoading,
+  themeKey,
   onHoverPoint,
 }: CoinChartProps) {
   const points = useMemo(() => (chart ? buildPoints(chart) : []), [chart]);
+  // Theme colors re-read from CSS vars whenever the theme changes; the
+  // memo only re-renders when props (incl. themeKey) change.
+  const colors = useMemo(
+    () => ({
+      up: cssVar('--cp-up', '#22c55e'),
+      down: cssVar('--cp-down', '#f87171'),
+      grid: cssVar('--cp-line', '#232a3a'),
+      tick: cssVar('--cp-text-faint', '#7d8698'),
+      axis: cssVar('--cp-line', '#232a3a'),
+      cursor: cssVar('--cp-accent', '#38bdf8'),
+      surface: cssVar('--cp-surface', '#0d1117'),
+    }),
+    [themeKey],
+  );
   const up = coin.price_change_percentage_24h >= 0;
-  const color = up ? '#22c55e' : '#f87171';
+  const color = up ? colors.up : colors.down;
 
   if (isLoading) {
     return <ChartEmpty>Loading 7-day chart…</ChartEmpty>;
@@ -130,17 +156,17 @@ export const CoinChart = memo(function CoinChart({
               <stop offset="100%" stopColor={color} stopOpacity={0.01} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#1a2130" strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid stroke={colors.grid} strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="time"
-            tick={{ fill: '#7d8698', fontSize: 11 }}
+            tick={{ fill: colors.tick, fontSize: 11 }}
             tickLine={false}
-            axisLine={{ stroke: '#232a3a' }}
+            axisLine={{ stroke: colors.axis }}
             minTickGap={48}
             tickFormatter={(value: string) => value.split(' ').slice(0, 2).join(' ')}
           />
           <YAxis
-            tick={{ fill: '#7d8698', fontSize: 11 }}
+            tick={{ fill: colors.tick, fontSize: 11 }}
             tickLine={false}
             axisLine={false}
             domain={['auto', 'auto']}
@@ -151,7 +177,7 @@ export const CoinChart = memo(function CoinChart({
           />
           <Tooltip
             cursor={{
-              stroke: '#38bdf8',
+              stroke: colors.cursor,
               strokeOpacity: 0.4,
               strokeWidth: 1,
               strokeDasharray: '4 4',
@@ -178,7 +204,7 @@ export const CoinChart = memo(function CoinChart({
             activeDot={{
               r: 4,
               fill: color,
-              stroke: '#0d1117',
+              stroke: colors.surface,
               strokeWidth: 2,
             }}
           />
